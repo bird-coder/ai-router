@@ -1,0 +1,134 @@
+{
+  "server": {
+    "address": ":8080",
+    "default_workdir": "/Users/jiajie.yu/go/src"
+  },
+  "providers": {
+    "cli": {
+      "codex": {
+        "binary": "codex",
+        "args": [
+          "exec",
+          "--color",
+          "never",
+          "--sandbox",
+          "workspace-write",
+          "-a",
+          "never",
+          "--skip-git-repo-check",
+          "-C",
+          "{{workdir}}",
+          "-o",
+          "{{output_file}}",
+          "-m",
+          "{{model}}",
+          "{{prompt}}"
+        ],
+        "default_workdir": "/Users/jiajie.yu/go/src",
+        "output_mode": "file"
+      },
+      "claude-code": {
+        "binary": "claude",
+        "args": [
+          "-p",
+          "{{prompt}}"
+        ],
+        "default_workdir": "/Users/jiajie.yu/go/src",
+        "output_mode": "stdout"
+      }
+    },
+    "openai_compat": {
+      "qwen": {
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode",
+        "chat_completions_path": "/v1/chat/completions",
+        "api_key_env": "QWEN_API_KEY",
+        "timeout_seconds": 120
+      },
+      "minimax": {
+        "base_url": "https://api.minimax.chat",
+        "chat_completions_path": "/v1/text/chatcompletion_v2",
+        "api_key_env": "MINIMAX_API_KEY",
+        "headers": {
+          "Group-Id": "your-group-id"
+        },
+        "timeout_seconds": 120
+      },
+      "chatgpt": {
+        "base_url": "https://api.openai.com",
+        "chat_completions_path": "/v1/chat/completions",
+        "api_key_env": "OPENAI_API_KEY",
+        "timeout_seconds": 120
+      }
+    }
+  },
+  "routes": [
+    {
+      "name": "review-heavy",
+      "description": "Use the stronger model for review and architecture prompts.",
+      "priority": 100,
+      "match": {
+        "task_types": ["review", "architecture", "complex"],
+        "prompt_contains": [],
+        "preferred_models": [],
+        "clients": [],
+        "providers": []
+      },
+      "target": {
+        "provider": "codex",
+        "model": "gpt-5.4",
+        "reasoning_effort": "medium"
+      }
+    },
+    {
+      "name": "fast-default",
+      "description": "Use the cheaper model for generic routing and quick tasks.",
+      "priority": 10,
+      "match": {
+        "task_types": ["fast", "triage"],
+        "prompt_contains": [],
+        "preferred_models": [],
+        "clients": [],
+        "providers": []
+      },
+      "target": {
+        "provider": "qwen",
+        "model": "qwen-plus",
+        "reasoning_effort": "low"
+      }
+    },
+    {
+      "name": "anthropic-client-default",
+      "description": "Allow Anthropic-style clients to default to Claude CLI when desired.",
+      "priority": 50,
+      "match": {
+        "task_types": [],
+        "prompt_contains": [],
+        "preferred_models": [],
+        "clients": ["anthropic"],
+        "providers": []
+      },
+      "target": {
+        "provider": "claude-code",
+        "model": "sonnet",
+        "reasoning_effort": ""
+      }
+    },
+    {
+      "name": "fallback-default",
+      "description": "Fallback to a cheap compatible model for generic tasks.",
+      "priority": 10,
+      "match": {
+        "task_types": [],
+        "prompt_contains": [],
+        "preferred_models": [],
+        "clients": [],
+        "providers": []
+      },
+      "target": {
+        "provider": "qwen",
+        "model": "qwen-plus",
+        "reasoning_effort": "low"
+      }
+    }
+  ]
+}
