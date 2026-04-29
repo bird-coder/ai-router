@@ -1,36 +1,25 @@
 package provider
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"ai-router/internal/config"
+	"ai-router/internal/util"
 )
 
 type OpenAICompat struct {
-	name   string
-	cfg    config.OpenAICompatProviderConfig
-	client *http.Client
+	name string
+	cfg  config.OpenAICompatProviderConfig
 }
 
 func NewOpenAICompat(name string, cfg config.OpenAICompatProviderConfig) *OpenAICompat {
-	timeout := cfg.TimeoutSeconds
-	if timeout <= 0 {
-		timeout = 120
-	}
 	return &OpenAICompat{
 		name: name,
 		cfg:  cfg,
-		client: &http.Client{
-			Timeout: time.Duration(timeout) * time.Second,
-		},
 	}
 }
 
@@ -55,35 +44,16 @@ func (o *OpenAICompat) Run(ctx context.Context, req Request) (string, error) {
 		"stream": false,
 	}
 
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return "", fmt.Errorf("marshal provider request: %w", err)
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+path, bytes.NewReader(body))
-	if err != nil {
-		return "", fmt.Errorf("build provider request: %w", err)
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
+	headers := map[string]string{}
 	if token := resolveSecret(o.cfg.APIKey, o.cfg.APIKeyEnv); token != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+token)
+		headers["Authorization"] = "Bearer " + token
 	}
 	for key, value := range o.cfg.Headers {
-		httpReq.Header.Set(key, value)
+		headers[key] = value
 	}
-
-	resp, err := o.client.Do(httpReq)
+	resp, err := util.HttpPostJson(baseURL+path, payload, headers)
 	if err != nil {
 		return "", fmt.Errorf("request provider %q: %w", o.name, err)
-	}
-	defer resp.Body.Close()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("read provider response: %w", err)
-	}
-	if resp.StatusCode >= 300 {
-		return "", fmt.Errorf("provider %q returned %d: %s", o.name, resp.StatusCode, strings.TrimSpace(string(respBody)))
 	}
 
 	var parsed struct {
@@ -94,7 +64,7 @@ func (o *OpenAICompat) Run(ctx context.Context, req Request) (string, error) {
 			Text string `json:"text"`
 		} `json:"choices"`
 	}
-	if err := json.Unmarshal(respBody, &parsed); err != nil {
+	if err := json.Unmarshal(resp, &parsed); err != nil {
 		return "", fmt.Errorf("decode provider response: %w", err)
 	}
 	if len(parsed.Choices) == 0 {
