@@ -47,12 +47,22 @@ type HTTPRequest struct {
 	Headers        map[string]string
 	Body           io.Reader
 	ExpectedStatus []int
+
+	err error
 }
 
 type HTTPResponse struct {
 	StatusCode int
 	Headers    http.Header
 	Body       []byte
+}
+
+func NewHttpRequest(url string, method string) *HTTPRequest {
+	req := &HTTPRequest{
+		Method: method,
+		URL:    url,
+	}
+	return req
 }
 
 func (req HTTPRequest) Clone() HTTPRequest {
@@ -75,30 +85,88 @@ func (req HTTPRequest) Clone() HTTPRequest {
 	return cloned
 }
 
-func (req *HTTPRequest) SetBodyBytes(body []byte) {
-	req.Body = bytes.NewReader(body)
+func (req *HTTPRequest) WithMethod(method string) *HTTPRequest {
+	req.Method = method
+	return req
 }
 
-func (req *HTTPRequest) SetBodyString(body string) {
-	req.Body = strings.NewReader(body)
+func (req *HTTPRequest) WithURL(rawURL string) *HTTPRequest {
+	req.URL = rawURL
+	return req
 }
 
-func (req *HTTPRequest) SetJSONBody(value any) error {
+func (req *HTTPRequest) WithHeaders(headers map[string]string) *HTTPRequest {
+	if headers == nil {
+		req.Headers = nil
+		return req
+	}
+	req.Headers = make(map[string]string, len(headers))
+	for key, value := range headers {
+		req.Headers[key] = value
+	}
+	return req
+}
+
+func (req *HTTPRequest) WithHeader(key, value string) *HTTPRequest {
+	if req.Headers == nil {
+		req.Headers = make(map[string]string)
+	}
+	req.Headers[key] = value
+	return req
+}
+
+func (req *HTTPRequest) WithQuery(query map[string]any) *HTTPRequest {
+	if query == nil {
+		req.Query = nil
+		return req
+	}
+	req.Query = make(map[string]any, len(query))
+	for key, value := range query {
+		req.Query[key] = value
+	}
+	return req
+}
+
+func (req *HTTPRequest) WithExpectedStatus(status ...int) *HTTPRequest {
+	req.ExpectedStatus = append([]int(nil), status...)
+	return req
+}
+
+func (req *HTTPRequest) WithBodyBytes(body []byte) *HTTPRequest {
+	req.setBodyBytes(body)
+	return req
+}
+
+func (req *HTTPRequest) WithBodyString(body string) *HTTPRequest {
+	req.setBodyString(body)
+	return req
+}
+
+func (req *HTTPRequest) WithJSONBody(value any) *HTTPRequest {
+	if req.err != nil {
+		return req
+	}
 	payload, err := json.Marshal(value)
 	if err != nil {
-		return fmt.Errorf("marshal request body failed for %T: %w", value, err)
+		req.err = fmt.Errorf("marshal request body failed for %T: %w", value, err)
+		return req
 	}
-	req.SetBodyBytes(payload)
-	req.withDefaultContentType(contentTypeJson)
-	return nil
+	req.setBodyBytes(payload)
+	req.setDefaultContentType(contentTypeJson)
+	return req
 }
 
-func (req *HTTPRequest) SetFormBody(form url.Values) {
-	req.SetBodyString(form.Encode())
-	req.withDefaultContentType(contentTypeForm)
+func (req *HTTPRequest) WithFormBody(form url.Values) *HTTPRequest {
+	req.setBodyString(form.Encode())
+	req.setDefaultContentType(contentTypeForm)
+	return req
 }
 
 func (req HTTPRequest) Do(ctx context.Context) (*HTTPResponse, error) {
+	if req.err != nil {
+		return nil, req.err
+	}
+
 	targetURL, err := req.buildURL()
 	if err != nil {
 		return nil, err
@@ -165,7 +233,15 @@ func (req HTTPRequest) statusAllowed(status int) bool {
 	return false
 }
 
-func (req *HTTPRequest) withDefaultContentType(contentType string) {
+func (req *HTTPRequest) setBodyBytes(body []byte) {
+	req.Body = bytes.NewReader(body)
+}
+
+func (req *HTTPRequest) setBodyString(body string) {
+	req.Body = strings.NewReader(body)
+}
+
+func (req *HTTPRequest) setDefaultContentType(contentType string) {
 	if _, ok := req.Headers[contentTypeKey]; ok {
 		return
 	}
@@ -176,47 +252,42 @@ func (req *HTTPRequest) withDefaultContentType(contentType string) {
 }
 
 func HttpHead(targetURL string, headers map[string]string) error {
-	req := HTTPRequest{
-		Method:         http.MethodHead,
-		URL:            targetURL,
-		Headers:        headers,
-		ExpectedStatus: []int{http.StatusOK, http.StatusNoContent, http.StatusMovedPermanently, http.StatusFound},
-	}
-	req.withDefaultContentType(contentTypeJson)
+	_, err := new(HTTPRequest).
+		WithURL(targetURL).
+		WithMethod(http.MethodHead).
+		WithHeader(contentTypeKey, contentTypeJson).
+		WithHeaders(headers).
+		WithExpectedStatus(http.StatusOK, http.StatusNoContent, http.StatusMovedPermanently, http.StatusFound).
+		Do(context.Background())
 
-	_, err := req.Do(context.Background())
 	return err
 }
 
 func HttpGet(targetURL string, query map[string]any, headers map[string]string) ([]byte, error) {
-	req := HTTPRequest{
-		Method:         http.MethodGet,
-		URL:            targetURL,
-		Query:          query,
-		Headers:        headers,
-		ExpectedStatus: []int{http.StatusOK},
-	}
-	req.withDefaultContentType(contentTypeJson)
+	resp, err := new(HTTPRequest).
+		WithURL(targetURL).
+		WithMethod(http.MethodGet).
+		WithQuery(query).
+		WithHeader(contentTypeKey, contentTypeJson).
+		WithHeaders(headers).
+		WithExpectedStatus(http.StatusOK).
+		Do(context.Background())
 
-	resp, err := req.Do(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	return resp.Body, nil
 }
 
-func HttpPostJson(targetURL string, data any, headers map[string]string) ([]byte, error) {
-	req := HTTPRequest{
-		Method:         http.MethodPost,
-		URL:            targetURL,
-		Headers:        headers,
-		ExpectedStatus: []int{http.StatusOK},
-	}
-	if err := req.SetJSONBody(data); err != nil {
-		return nil, err
-	}
+func HttpPostJSON(targetURL string, data any, headers map[string]string) ([]byte, error) {
+	resp, err := new(HTTPRequest).
+		WithURL(targetURL).
+		WithMethod(http.MethodPost).
+		WithJSONBody(data).
+		WithHeaders(headers).
+		WithExpectedStatus(http.StatusOK).
+		Do(context.Background())
 
-	resp, err := req.Do(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -229,15 +300,14 @@ func HttpPostForm(targetURL string, data map[string]any, headers map[string]stri
 		form.Set(key, stringify(value))
 	}
 
-	req := HTTPRequest{
-		Method:         http.MethodPost,
-		URL:            targetURL,
-		Headers:        headers,
-		ExpectedStatus: []int{http.StatusOK},
-	}
-	req.SetFormBody(form)
+	resp, err := new(HTTPRequest).
+		WithURL(targetURL).
+		WithMethod(http.MethodPost).
+		WithFormBody(form).
+		WithHeaders(headers).
+		WithExpectedStatus(http.StatusOK).
+		Do(context.Background())
 
-	resp, err := req.Do(context.Background())
 	if err != nil {
 		return nil, err
 	}

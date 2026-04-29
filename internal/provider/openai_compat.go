@@ -51,7 +51,7 @@ func (o *OpenAICompat) Run(ctx context.Context, req Request) (string, error) {
 	for key, value := range o.cfg.Headers {
 		headers[key] = value
 	}
-	resp, err := util.HttpPostJson(baseURL+path, payload, headers)
+	resp, err := util.HttpPostJSON(baseURL+path, payload, headers)
 	if err != nil {
 		return "", fmt.Errorf("request provider %q: %w", o.name, err)
 	}

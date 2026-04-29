@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -64,7 +63,7 @@ func TestPostJSONSendsJSONBody(t *testing.T) {
 	})
 	defer restore()
 
-	body, err := HttpPostJson("https://example.com/chat", map[string]any{"model": "qwen-plus"}, nil)
+	body, err := HttpPostJSON("https://example.com/chat", map[string]any{"model": "qwen-plus"}, nil)
 	if err != nil {
 		t.Fatalf("PostJSON() error = %v", err)
 	}
@@ -121,68 +120,6 @@ func TestDoReturnsErrorOnUnexpectedStatus(t *testing.T) {
 	}
 }
 
-func TestSetBodyHelpers(t *testing.T) {
-	req := &HTTPRequest{}
-	req.SetBodyString("hello")
-
-	data, err := io.ReadAll(req.Body)
-	if err != nil {
-		t.Fatalf("read string body: %v", err)
-	}
-	if string(data) != "hello" {
-		t.Fatalf("string body = %q", string(data))
-	}
-
-	req.SetBodyBytes([]byte("world"))
-	data, err = io.ReadAll(req.Body)
-	if err != nil {
-		t.Fatalf("read bytes body: %v", err)
-	}
-	if string(data) != "world" {
-		t.Fatalf("bytes body = %q", string(data))
-	}
-}
-
-func TestSetJSONBody(t *testing.T) {
-	req := &HTTPRequest{}
-	if err := req.SetJSONBody(map[string]any{"model": "qwen-plus"}); err != nil {
-		t.Fatalf("SetJSONBody() error = %v", err)
-	}
-	if got := req.Headers[contentTypeKey]; got != contentTypeJson {
-		t.Fatalf("content-type = %q, want %q", got, contentTypeJson)
-	}
-
-	var payload map[string]any
-	if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode json body: %v", err)
-	}
-	if payload["model"] != "qwen-plus" {
-		t.Fatalf("model = %v", payload["model"])
-	}
-}
-
-func TestSetFormBody(t *testing.T) {
-	req := &HTTPRequest{}
-	form := url.Values{
-		"name":  []string{"router"},
-		"level": []string{"1"},
-	}
-	req.SetFormBody(form)
-
-	if got := req.Headers[contentTypeKey]; got != contentTypeForm {
-		t.Fatalf("content-type = %q, want %q", got, contentTypeForm)
-	}
-
-	data, err := io.ReadAll(req.Body)
-	if err != nil {
-		t.Fatalf("read form body: %v", err)
-	}
-	body := string(data)
-	if !strings.Contains(body, "name=router") || !strings.Contains(body, "level=1") {
-		t.Fatalf("form body = %q", body)
-	}
-}
-
 func TestCloneCopiesMutableFields(t *testing.T) {
 	original := HTTPRequest{
 		Method:         http.MethodPost,
@@ -209,6 +146,44 @@ func TestCloneCopiesMutableFields(t *testing.T) {
 	}
 	if cloned.Body != original.Body {
 		t.Fatal("body reader should be shared in clone")
+	}
+}
+
+func TestWithMethodsSupportChaining(t *testing.T) {
+	req := new(HTTPRequest).
+		WithMethod(http.MethodPost).
+		WithURL("https://example.com/chat").
+		WithHeaders(map[string]string{"X-Test": "yes"}).
+		WithHeader("X-Trace", "123").
+		WithQuery(map[string]any{"page": 1}).
+		WithExpectedStatus(http.StatusOK).
+		WithJSONBody(map[string]any{"model": "qwen-plus"})
+
+	if req.Method != http.MethodPost {
+		t.Fatalf("method = %q", req.Method)
+	}
+	if req.URL != "https://example.com/chat" {
+		t.Fatalf("url = %q", req.URL)
+	}
+	if req.Headers["X-Test"] != "yes" || req.Headers["X-Trace"] != "123" {
+		t.Fatalf("headers = %#v", req.Headers)
+	}
+	if req.Headers[contentTypeKey] != contentTypeJson {
+		t.Fatalf("content-type = %q", req.Headers[contentTypeKey])
+	}
+	if req.Query["page"] != 1 {
+		t.Fatalf("query = %#v", req.Query)
+	}
+	if len(req.ExpectedStatus) != 1 || req.ExpectedStatus[0] != http.StatusOK {
+		t.Fatalf("expected status = %#v", req.ExpectedStatus)
+	}
+
+	var payload map[string]any
+	if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode json body: %v", err)
+	}
+	if payload["model"] != "qwen-plus" {
+		t.Fatalf("model = %v", payload["model"])
 	}
 }
 
