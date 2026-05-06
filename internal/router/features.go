@@ -48,9 +48,16 @@ type Features struct {
 	RequiresHighIQ  bool
 }
 
-func classify(text string) Features {
+func classify(req Request) Features {
+	text := extractText(req.Input)
 	return Features{
-		IsRefactor: strings.Contains(text, "refactor"),
+		InputTokens:     getInputTokens(text),
+		HasTools:        checkHasTools(req.Tools),
+		IsCodeTask:      checkIsCodeTask(text),
+		IsRefactor:      checkIsRefactor(text),
+		IsSimpleQuery:   checkIsSimpleQuery(text),
+		RequiresLongCtx: checkRequiresLongCtx(text),
+		RequiresHighIQ:  checkRequiresHighIQ(text),
 	}
 }
 
@@ -74,8 +81,29 @@ var (
 	}
 )
 
-func getInputTokens() int {
+func getInputTokens(text string) int {
+	if len(text) == 0 {
+		return 0
+	}
 
+	asciiCount := 0
+	nonAsciiCount := 0
+
+	for _, r := range text {
+		if r < 128 {
+			asciiCount++
+		} else {
+			nonAsciiCount++
+		}
+	}
+
+	// 英文部分
+	asciiTokens := asciiCount / 4
+	// 中文部分
+	nonAsciiTokens := nonAsciiCount
+
+	// 乘一个安全系数
+	return int(float64(asciiTokens+nonAsciiTokens) * 1.2)
 }
 
 func checkHasTools(tools []Tool) bool {
@@ -117,10 +145,48 @@ func checkIsSimpleQuery(text string) bool {
 	return len(text) < 200
 }
 
-func checkRequiresLongCtx() bool {
-
+func checkRequiresLongCtx(text string) bool {
+	tokens := getInputTokens(text)
+	return tokens > 8000
 }
 
 func checkRequiresHighIQ(text string) bool {
 	return strings.Contains(text, "design") || strings.Contains(text, "architecture")
+}
+
+func extractText(input any) string {
+	switch v := input.(type) {
+	case string:
+		return v
+
+	case []any:
+		var sb strings.Builder
+
+		for _, item := range v {
+			m, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+
+			content, ok := m["content"].([]any)
+			if !ok {
+				continue
+			}
+
+			for _, c := range content {
+				cm, ok := c.(map[string]any)
+				if !ok {
+					continue
+				}
+
+				if text, ok := cm["text"].(string); ok {
+					sb.WriteString(text)
+				}
+			}
+		}
+
+		return sb.String()
+	}
+
+	return ""
 }
