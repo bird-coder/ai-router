@@ -1,0 +1,13 @@
+system:
+  appName: ai-router
+  env: development
+  timezone: Asia/Shanghai
+  serverId: 1
+loggers:
+  "default":
+    logLevel: info
+    logPath: "./logs/error/error.log"
+    maxSize: 128
+    maxAge: 7
+    maxBackups: 30
+    compress: false

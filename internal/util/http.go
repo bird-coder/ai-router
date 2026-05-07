@@ -47,6 +47,7 @@ type HTTPRequest struct {
 	Headers        map[string]string
 	Body           io.Reader
 	ExpectedStatus []int
+	rawBodyString  string
 
 	err error
 }
@@ -183,17 +184,17 @@ func (req HTTPRequest) Do(ctx context.Context) (*HTTPResponse, error) {
 
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("%s %s failed: %w", req.Method, targetURL, err)
+		return nil, fmt.Errorf("http %s failed, url: %s, body: %s, error: %w", req.Method, targetURL, req.rawBodyString, err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("read %s %s response failed: %w", req.Method, targetURL, err)
+		return nil, fmt.Errorf("read http response failed, url: %s, body: %s, error: %w", targetURL, req.rawBodyString, err)
 	}
 
 	if !req.statusAllowed(resp.StatusCode) {
-		return nil, fmt.Errorf("%s %s returned status %d: %s", req.Method, targetURL, resp.StatusCode, string(respBody))
+		return nil, fmt.Errorf("http %s returned status %d, url: %s, resp: %s", req.Method, resp.StatusCode, targetURL, string(respBody))
 	}
 
 	return &HTTPResponse{
@@ -234,10 +235,12 @@ func (req HTTPRequest) statusAllowed(status int) bool {
 }
 
 func (req *HTTPRequest) setBodyBytes(body []byte) {
+	req.rawBodyString = string(body)
 	req.Body = bytes.NewReader(body)
 }
 
 func (req *HTTPRequest) setBodyString(body string) {
+	req.rawBodyString = body
 	req.Body = strings.NewReader(body)
 }
 
