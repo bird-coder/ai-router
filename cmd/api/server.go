@@ -1,12 +1,16 @@
 package api
 
 import (
+	"ai-router/internal/hooks"
+	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
 
+	"github.com/bird-coder/manyo/config"
 	"github.com/bird-coder/manyo/lib/stage"
 	"github.com/bird-coder/manyo/pkg/core"
+	"github.com/bird-coder/manyo/pkg/server/httpx"
 )
 
 var (
@@ -30,23 +34,27 @@ func init() {
 }
 
 func setup() {
-	if err := core.Kernal.Init(configYml); err != nil {
+	if _, err := core.BuildDefault(configYml); err != nil {
 		panic(err)
 	}
 	fmt.Println("starting api server...")
 }
 
 func run() error {
-	defer core.Kernal.SyncLogger()
-	log := core.Kernal.GetLogger("default")
+	defer core.Default().SyncLogger()
+	log := core.Default().GetLogger(core.DEFAULT_KEY)
 	log.Info("ai-router server start")
 
+	ctx := context.Background()
+	httpConfig, _ := core.GetCustomConfig[*config.HttpConfig](core.Default(), "http")
+	httpServer := httpx.NewHttpServer(ctx, httpConfig)
 	app := stage.NewApp(
-		stage.WithServer(),
-		stage.BeforeStart(),
-		stage.AfterStart(),
-		stage.BeforeStop(),
-		stage.AfterStop(),
+		stage.WithContext(ctx),
+		stage.WithServer(httpServer),
+		stage.BeforeStart(hooks.BeforeStart),
+		stage.AfterStart(hooks.AfterStart),
+		stage.BeforeStop(hooks.BeforeStop),
+		stage.AfterStop(hooks.AfterStop),
 	)
 	return app.Run()
 }
