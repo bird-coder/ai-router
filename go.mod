@@ -3,6 +3,12 @@ module ai-router
 go 1.26.0
 
 require (
+	github.com/bird-coder/manyo v0.0.0-20260514031717-3c0f8014746a
+	github.com/spf13/cobra v1.10.2
+	github.com/spf13/viper v1.20.1
+)
+
+require (
 	contrib.go.opencensus.io/exporter/ocagent v0.7.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-pop v0.0.6 // indirect
@@ -28,7 +34,6 @@ require (
 	github.com/aliyun/credentials-go v1.4.3 // indirect
 	github.com/apache/rocketmq-clients/golang/v5 v5.1.1-rc1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bird-coder/manyo v0.0.0-20260514031717-3c0f8014746a // indirect
 	github.com/bsm/redislock v0.9.4 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
@@ -81,9 +86,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
-	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
-	github.com/spf13/viper v1.20.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
