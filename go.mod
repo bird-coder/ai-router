@@ -28,7 +28,7 @@ require (
 	github.com/aliyun/credentials-go v1.4.3 // indirect
 	github.com/apache/rocketmq-clients/golang/v5 v5.1.1-rc1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bird-coder/manyo v0.0.0-20260512073751-8cc53035f687 // indirect
+	github.com/bird-coder/manyo v0.0.0-20260514031717-3c0f8014746a // indirect
 	github.com/bsm/redislock v0.9.4 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect

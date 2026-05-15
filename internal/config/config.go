@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/bird-coder/manyo/config"
+	"github.com/bird-coder/manyo/pkg/core"
+	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -87,4 +91,29 @@ func Load(path string) (*Config, error) {
 
 func (c *Config) DefaultTimeout() time.Duration {
 	return 2 * time.Minute
+}
+
+type AppConfig struct {
+	core.BaseAppConfig `mapstructure:",squash"`
+
+	Http config.HttpConfig
+}
+
+func (app *AppConfig) LoadConfig(configFile string) (err error) {
+	viper.SetConfigFile(configFile)
+	if err = viper.ReadInConfig(); err != nil {
+		return
+	}
+	if err = viper.Unmarshal(&app); err != nil {
+		return
+	}
+	return
+}
+
+func (app *AppConfig) GetBaseAppConfig() *core.BaseAppConfig {
+	return &app.BaseAppConfig
+}
+
+func (app *AppConfig) CustomConfigs() map[string]any {
+	return map[string]any{}
 }

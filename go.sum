@@ -99,6 +99,12 @@ github.com/bird-coder/manyo v0.0.0-20260512053736-de69998cb49f h1:83Zaoy8+t9KUuX
 github.com/bird-coder/manyo v0.0.0-20260512053736-de69998cb49f/go.mod h1:rIhGxUtopT21Xb9pIz9wJbokQJNKLqAS6QvEmxdrrVE=
 github.com/bird-coder/manyo v0.0.0-20260512073751-8cc53035f687 h1:WDdhaAZqAgl3/+1k6jHYesoBnsZk5A1EQC1m3JIxtwA=
 github.com/bird-coder/manyo v0.0.0-20260512073751-8cc53035f687/go.mod h1:rIhGxUtopT21Xb9pIz9wJbokQJNKLqAS6QvEmxdrrVE=
+github.com/bird-coder/manyo v0.0.0-20260514022751-0fed102d25bd h1:CqBLkizrv9NKlQ9Y4ei1duFy2td3+DgBjcFGP76KhDk=
+github.com/bird-coder/manyo v0.0.0-20260514022751-0fed102d25bd/go.mod h1:rIhGxUtopT21Xb9pIz9wJbokQJNKLqAS6QvEmxdrrVE=
+github.com/bird-coder/manyo v0.0.0-20260514030452-defa778962d1 h1:0DHxSNLX9/i8WZgkpboY8jL52bXWTOaZSRRDmrR+D4Q=
+github.com/bird-coder/manyo v0.0.0-20260514030452-defa778962d1/go.mod h1:rIhGxUtopT21Xb9pIz9wJbokQJNKLqAS6QvEmxdrrVE=
+github.com/bird-coder/manyo v0.0.0-20260514031717-3c0f8014746a h1:fTUE4Gly2joKgu6z1Vok8OSvlTf0q+MsxdlxnQliyXw=
+github.com/bird-coder/manyo v0.0.0-20260514031717-3c0f8014746a/go.mod h1:rIhGxUtopT21Xb9pIz9wJbokQJNKLqAS6QvEmxdrrVE=
 github.com/bsm/redislock v0.9.4 h1:X/Wse1DPpiQgHbVYRE9zv6m070UcKoOGekgvpNhiSvw=
 github.com/bsm/redislock v0.9.4/go.mod h1:Epf7AJLiSFwLCiZcfi6pWFO/8eAYrYpQXFxEDPoDeAk=
 github.com/buger/jsonparser v1.1.1 h1:2PnMjfWD7wBILjqQbt530v576A/cAbQvEW9gGIpYMUs=
