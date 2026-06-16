@@ -3,7 +3,7 @@ module ai-router
 go 1.26.0
 
 require (
-	github.com/bird-coder/manyo v0.0.0-20260514031717-3c0f8014746a
+	github.com/bird-coder/manyo v0.0.0-20260519093041-de1959a44d90
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.20.1
 )

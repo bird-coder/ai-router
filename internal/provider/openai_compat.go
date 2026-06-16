@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"ai-router/internal/config"
-	"ai-router/internal/util"
+
+	"github.com/bird-coder/manyo/util"
 )
 
 type OpenAICompat struct {

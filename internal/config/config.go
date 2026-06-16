@@ -2,24 +2,24 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/bird-coder/manyo/config"
 	"github.com/bird-coder/manyo/pkg/core"
 	"github.com/spf13/viper"
 )
 
-type Config struct {
-	Server    ServerConfig `json:"server"`
-	Providers Providers    `json:"providers"`
-	Routes    []RouteRule  `json:"routes"`
-}
+const (
+	CONFIG_KEY_HTTP     = "http"
+	CONFIG_KEY_PROVIDER = "providers"
+	CONFIG_KEY_ROUTE    = "routes"
+)
 
-type ServerConfig struct {
-	Address        string `json:"address"`
-	DefaultWorkdir string `json:"default_workdir"`
+type Config struct {
+	Providers Providers   `json:"providers"`
+	Routes    []RouteRule `json:"routes"`
 }
 
 type Providers struct {
@@ -76,9 +76,6 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("decode %s: %w", path, err)
 	}
 
-	if cfg.Server.Address == "" {
-		cfg.Server.Address = ":8080"
-	}
 	for name, cli := range cfg.Providers.CLIs {
 		if cli.OutputMode == "" {
 			cli.OutputMode = "stdout"
@@ -89,20 +86,30 @@ func Load(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-func (c *Config) DefaultTimeout() time.Duration {
-	return 2 * time.Minute
-}
-
 type AppConfig struct {
 	core.BaseAppConfig `mapstructure:",squash"`
 
-	Http config.HttpConfig
+	Http config.HttpConfig `mapstructure:"http"`
+
+	Providers Providers   `mapstructure:"providers"`
+	Routes    []RouteRule `mapstructure:"routes"`
 }
 
-func (app *AppConfig) LoadConfig(configFile string) (err error) {
-	viper.SetConfigFile(configFile)
+func (app *AppConfig) LoadConfig(configFiles ...string) (err error) {
+	if len(configFiles) == 0 {
+		err = errors.New("缺少配置文件")
+	}
+	viper.SetConfigFile(configFiles[0])
 	if err = viper.ReadInConfig(); err != nil {
 		return
+	}
+	if len(configFiles) > 1 {
+		for _, configFile := range configFiles[1:] {
+			viper.SetConfigFile(configFile)
+			if err = viper.MergeInConfig(); err != nil {
+				return
+			}
+		}
 	}
 	if err = viper.Unmarshal(&app); err != nil {
 		return
@@ -115,5 +122,9 @@ func (app *AppConfig) GetBaseAppConfig() *core.BaseAppConfig {
 }
 
 func (app *AppConfig) CustomConfigs() map[string]any {
-	return map[string]any{}
+	return map[string]any{
+		CONFIG_KEY_HTTP:     app.Http,
+		CONFIG_KEY_PROVIDER: app.Providers,
+		CONFIG_KEY_ROUTE:    app.Routes,
+	}
 }

@@ -11,3 +11,7 @@ loggers:
     maxAge: 7
     maxBackups: 30
     compress: false
+http:
+  addr: ":8080"
+  readTimeout: 30
+  writeTimeout: 30
